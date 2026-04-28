@@ -20,7 +20,6 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    # Настройка логирования (Fix #15)
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
@@ -37,7 +36,6 @@ def create_app(config_class=Config):
     app.register_blueprint(reports.bp)
     app.register_blueprint(admin.bp)
 
-    # Регистрация обработчика ошибки 403
     @app.errorhandler(403)
     def forbidden(e):
         from flask import render_template_string
@@ -56,5 +54,16 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        # Миграция: добавляем недостающие колонки
+        try:
+            from sqlalchemy import text
+            db.session.execute(text(
+                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE'
+            ))
+            db.session.commit()
+            app.logger.info('Migration is_active: OK')
+        except Exception as e:
+            db.session.rollback()
+            app.logger.info(f'Migration skipped: {e}')
 
     return app
