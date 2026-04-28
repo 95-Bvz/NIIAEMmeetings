@@ -2,7 +2,19 @@ services:
   - type: web
     name: nii-aem-web
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python -c "
+from app import create_app, db
+from sqlalchemy import text
+app = create_app()
+with app.app_context():
+    db.create_all()
+    try:
+        db.session.execute(text('ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE'))
+        db.session.commit()
+        print('Migration done!')
+    except Exception as e:
+        print('Migration skipped:', e)
+"
     startCommand: gunicorn run:app
     plan: free
     envVars:
