@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: nii-aem-web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nii-aem-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.12.0
+
+databases:
+  - name: nii-aem-db
+    databaseName: nii_aem_db
+    user: nii_aem_user
+    plan: free
